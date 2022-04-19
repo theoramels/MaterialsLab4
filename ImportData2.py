@@ -62,9 +62,9 @@ def Remove_extrainious_data():
 MatPropertiesDict = {}
 DataDict = {}
 # De comment which material to process
-Mat_For_Analysis = '260Brass' 
+#Mat_For_Analysis = '260Brass' 
 #Mat_For_Analysis = '1018Steel'
-#Mat_For_Analysis = '4130Steel'
+Mat_For_Analysis = '4130Steel'
 #Mat_For_Analysis = '6061Aluminium'
 
 ExcelFileLoc = Mat_For_Analysis + 'Data' + '\\' + Mat_For_Analysis + 'Measurements' + '.xlsx'
@@ -115,10 +115,7 @@ for file in filenames: # for each file in the folder
     #Strain
     df['Strain_mm/mm'] = df[Globe_Disp_1_mm].abs() / length
     Strain_mmPermm = 'Strain_mm/mm'
-    # exponential smoothing
-    spanval = 6
-    df[Force_N] = df[Force_N].ewm(span=spanval, adjust=False).mean()
-    df[Globe_Disp_1_mm] = df[Globe_Disp_1_mm].ewm(span=spanval, adjust=False).mean()
+    
     
     if df[Force_N].iloc[0] < 1:
         ELeRegion = Remove_extrainious_data()

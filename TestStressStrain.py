@@ -13,6 +13,10 @@ from scipy.signal import butter, medfilt, filtfilt
 
 def Remove_extrainious_data():
     #Removing Data
+
+
+   
+
     samplingPeriod = 10 #indexes between samples
     sampleRange = 5 #range of data to be averaged per sample
     totIndicies = len(df)
@@ -92,10 +96,23 @@ with open(file, 'rt') as myfile: #Open
     width = GeometryData.iloc[0]['Width_mm']
     thickness = GeometryData.iloc[0]['Thickness_mm']
     
+    #exponential smoothing
+    spanval = 6
+    df[Force_N] = df[Force_N].ewm(span=spanval, adjust=False).mean()
+    df[Globe_Disp_1_mm] = df[Globe_Disp_1_mm].ewm(span=spanval, adjust=False).mean()
+
     df['Ext_Stress_Mpa'] = np.nan
     
-    if df[Force_N].iloc[0] < 1:
-        Remove_extrainious_data()
+    CSArea = width * thickness
+    #Stress
+    df['Stress_Mpa'] = df[Force_N].abs() / CSArea
+    Stress_Mpa = 'Stress_Mpa' 
+    #Strain
+    df['Strain_mm/mm'] = df[Globe_Disp_1_mm].abs() / length
+    Strain_mmPermm = 'Strain_mm/mm'
+    
+  
+    Remove_extrainious_data()
         
 
     # df.drop(df.index[100:220], inplace = True)
@@ -123,13 +140,7 @@ with open(file, 'rt') as myfile: #Open
     # for item in df[Time_s]:
     #     print(item)
     # Calculation of stress and strain for the current path in question
-    CSArea = width * thickness
-    #Stress
-    df['Stress_Mpa'] = df[Force_N].abs() / CSArea
-    Stress_Mpa = 'Stress_Mpa' 
-    #Strain
-    df['Strain_mm/mm'] = df[Globe_Disp_1_mm].abs() / length
-    Strain_mmPermm = 'Strain_mm/mm'
+
     
     colors = []
     for item in df['DerivitiveForce']:
@@ -140,11 +151,11 @@ with open(file, 'rt') as myfile: #Open
     
     plt.figure(9)
     ax1 = plt.subplot()
-    ax1.plot(df[Time_s] , df['DerivitiveForce'], '.')
-    ax1.vlines(x = df[Time_s], ymin = -1100, ymax = df['DerivitiveForce'], color = colors)
+    ax1.plot(df[Strain_mmPermm] , df['DerivitiveForce'], '.')
+    ax1.vlines(x = df[Strain_mmPermm], ymin = -1100, ymax = df['DerivitiveForce'], color = colors)
     ax2 = ax1.twinx()
-    ax2.plot(df[Time_s], df['AveragedSamples'])
-    ax2.plot(df[Time_s], df[Force_N])
+    ax2.plot(df[Strain_mmPermm], df['AveragedSamples'])
+    ax2.plot(df[Strain_mmPermm], df[Stress_Mpa])
     
     
     
