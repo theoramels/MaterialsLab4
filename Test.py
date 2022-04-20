@@ -65,7 +65,7 @@ def Remove_extrainious_data():
 dfExcel = pd.read_excel('260BrassData\\260BrassMeasurements.xlsx')
 #print(dfExcel)
 DataDict = {}
-file = '260BrassData\\260Brass_HT4_T1.lvm'
+file = '260BrassData\\260Brass_AR_T1.lvm'
 with open(file, 'rt') as myfile: #Open
     ind = 0
     for myline in myfile: # read line by line

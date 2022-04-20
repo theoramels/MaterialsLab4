@@ -62,10 +62,10 @@ def Remove_extrainious_data():
 MatPropertiesDict = {}
 DataDict = {}
 # De comment which material to process
-#Mat_For_Analysis = '260Brass' 
+Mat_For_Analysis = '260Brass' 
 #Mat_For_Analysis = '1018Steel'
 #Mat_For_Analysis = '4130Steel'
-Mat_For_Analysis = '6061Aluminium'
+#Mat_For_Analysis = '6061Aluminium'
 
 ExcelFileLoc = Mat_For_Analysis + 'Data' + '\\' + Mat_For_Analysis + 'Measurements' + '.xlsx'
 #ExcelFileLoc = '260BrassData\\260BrassMeasurements.xlsx'

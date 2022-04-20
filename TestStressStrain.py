@@ -83,27 +83,31 @@ def IdentifyCriticalPoints():
 
     BeginExtCuttoff_Index = BeginExtCuttoff_Index - samplingPeriod
     EndExtCuttoff_Index = EndExtCuttoff_Index + samplingPeriod
-    print(EndExtCuttoff_Index)
+
+    #Remove Null Data
+
     # Fracture Point
 
-    # Ultimate Tensile Stress
-
-    UltTensStr_Index = df[Strain_mmPermm].loc[df[Stress_Mpa].idxmax()]
-
-    # Yeild Strength
-
-    YeildStr_Index = df[(df['DerivitiveForce'].index > BeginData_Index) &
+# Ultimate Tensile Stress
+    UltTensStr_Index = df[Stress_Mpa].idxmax()
+    print('Ultimeate Tensile Strength is: ',UltTensStr_Index)
+# Yeild Strength
+    Derivitive(2)
+    YeildStr_Index = df['DerivitiveForce'][(df['DerivitiveForce'].index > BeginData_Index) &
                                    (df['DerivitiveForce'].notnull()) &
-                                   (df['DerivitiveForce'].index < BeginExtCuttoff_Index)].idxmax()
+                                   (df['DerivitiveForce'].index < BeginExtCuttoff_Index)].idxmax() + samplingPeriod
+    print('Yeild Strength is:', YeildStr_Index)
+# Modulus
+    ModulusElastic = None
 
-    # Modulus
+
     return  DataBeginCuttoff, BeginData_Index, BeginExtCuttoff_Index, EndExtCuttoff_Index, YeildStr_Index, UltTensStr_Index
 
 
 def RemoveNullData():
     None
     
-    df.drop(df.index[np.r_[0 : BeginData_Index , BeginExtCuttoff_Index : EndExtCuttoff_Index]], inplace=True)
+    #df.drop(df.index[np.r_[0 : BeginData_Index , BeginExtCuttoff_Index : EndExtCuttoff_Index]], inplace=True)
     
 
     # Fracture Point Data To end of Data set
@@ -112,7 +116,7 @@ def RemoveNullData():
 dfExcel = pd.read_excel('260BrassData\\260BrassMeasurements.xlsx')
 # print(dfExcel)
 DataDict = {}
-file = '260BrassData\\260Brass_HT4_T1.lvm'
+file = '260BrassData\\260Brass_AR_T1.lvm'
 with open(file, 'rt') as myfile:  # Open
     ind = 0
     for myline in myfile:  # read line by line
@@ -161,7 +165,7 @@ with open(file, 'rt') as myfile:  # Open
 
     DataBeginCuttoff, BeginData_Index, BeginExtCuttoff_Index, EndExtCuttoff_Index, YeildStr_Index, UltTensStr_Index = IdentifyCriticalPoints()
     RemoveNullData()
-
+    
     colors = []
     for item in df['DerivitiveForce']:
         if item > DataBeginCuttoff:
@@ -175,6 +179,10 @@ with open(file, 'rt') as myfile:  # Open
     ax1.vlines(x=df[Strain_mmPermm], ymin=-1100,
                ymax=df['DerivitiveForce'], color=colors)
     ax2 = ax1.twinx()
-    ax2.plot(df[Strain_mmPermm], df[Force_N])
+    ax2.plot(df[Strain_mmPermm], df[Stress_Mpa])
+    ax2.plot(df[Strain_mmPermm].iloc[int(UltTensStr_Index)], df[Stress_Mpa].iloc[int(UltTensStr_Index)], 'x', color = 'red')
+    ax2.plot(df[Strain_mmPermm].iloc[YeildStr_Index], df[Stress_Mpa].iloc[YeildStr_Index], 'o', color = 'orange')
+    ax2.plot([df[Strain_mmPermm].iloc[BeginData_Index], df[Strain_mmPermm].iloc[YeildStr_Index]], [df[Stress_Mpa].iloc[BeginData_Index], df[Stress_Mpa].iloc[YeildStr_Index]], marker ='x', color = 'purple')
+
 
     plt.show()
