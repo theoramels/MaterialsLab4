@@ -1,4 +1,3 @@
-
 from cProfile import label
 import os
 import glob
@@ -10,62 +9,66 @@ import matplotlib.pyplot as plt
 from scipy.signal import butter, medfilt, filtfilt
 
 
-def Remove_extrainious_data():
-    #Removing Data
-    samplingPeriod = 10 #indexes between samples
-    sampleRange = 5 #range of data to be averaged per sample
-    totIndicies = len(df)
-    indexRange = int(sampleRange/2)
-    sampleIndicies = np.arange(indexRange, totIndicies, samplingPeriod, dtype = int)
+def Derivitive(samplingPeriod):
+    df['DerivitiveForce'] = np.NaN
+    del df['DerivitiveForce']
+    df['DrivitiveForce'] = np.NaN
+    for i in range(samplingPeriod, len(df), samplingPeriod):
+        df.loc[(i - (samplingPeriod/2)), 'DerivitiveForce'] =  (df[Force_N].iloc[i - samplingPeriod]
+        - df[Force_N].iloc[i]) / (df[Time_s].iloc[i - samplingPeriod]
+        - df[Time_s].iloc[i])
 
-    df['DerivitiveForce'] = np.nan
-    df['AveragedSamples'] = np.nan
-    for Index in sampleIndicies:
-        df.loc[Index, 'AveragedSamples'] = df[Force_N].iloc[Index - indexRange: Index + indexRange].mean()
-        df.loc[Index - sampleRange, 'DerivitiveForce'] = (df['AveragedSamples'].iloc[Index - samplingPeriod]
-        - df['AveragedSamples'].iloc[Index]) / (df[Time_s].iloc[Index - samplingPeriod]
-        - df[Time_s].iloc[Index])
+def IdentifyCriticalPoints():
+    # Locating the Start of Data
+    samplingPeriod = 4 # must be even number
+    Derivitive(samplingPeriod)
+    DataBeginCuttoff = 10 # lower limit for derivite value
+    CertantyFactor = 10 
+    for i in range(0, len(df)):
+        BeginData_Index = df[(df['DerivitiveForce'] > DataBeginCuttoff) & df['DerivitiveForce'].notnull()].index[i]# for the first index where the derivitive is above 0
+        IsTrue = 0
 
-    # locate index at start of elastic region
-    
-    strtCondition = 15
-    indexStartLER = 0
-    indexEndLER = 0
-    indexEndNullPeriod = 0
-    for ind in df.index:
-        indexStartLER = df[(df['DerivitiveForce'] < strtCondition) &
-                       (df.index > indexStartLER) &
-                        df['DerivitiveForce'].notnull()].index[0]
-        if strtCondition > df['DerivitiveForce'].iloc[indexStartLER + samplingPeriod]:
-            None
-        elif strtCondition > df['DerivitiveForce'].iloc[indexStartLER + samplingPeriod*2]:
-            None
-        else:
+        for j in range(0, CertantyFactor): #Check the next Certanty Factor # of derivitives to see if BeginData_Index is the first datapoint
+            IndexedVal = df['DerivitiveForce'].loc[BeginData_Index + j*samplingPeriod]
+            if IndexedVal > DataBeginCuttoff:
+                IsTrue = IsTrue + 1
+            else: 
+                break
+        if IsTrue >= CertantyFactor:
             break
+    print(BeginData_Index)
 
-    df.drop(df.index[0 : indexStartLER], inplace= True)
+
+
     
-    df.reset_index(inplace = True)
-
-    indexEndLER = df[(df['DerivitiveForce'] < strtCondition) &
-    (df.index > indexStartLER)].index[0] -5
-
-    indexEndNullPeriod = df[(df['DerivitiveForce'] > strtCondition) &
-    (df.index > indexEndLER) &
-    df['DerivitiveForce'].notnull()].index[0] + 5
-
-    indexEndLER = df.loc[50:indexEndNullPeriod, 'DerivitiveForce'].idxmax() 
     
-    df.drop(df.index[indexEndLER : indexEndNullPeriod], inplace= True)
-    return [indexEndLER] 
 
-MatPropertiesDict = {}
+    # Fracture Point
+
+    # Ultimate Tensile Stress
+
+    # Yeild Strength 
+
+    # Modulus 
+    return BeginData_Index , DataBeginCuttoff
+
+
+def RemoveNullData():
+    None
+    # Initial Null Data to start Linear Elastic Region
+    df.drop(df.index[0 : BeginData_Index], inplace= True)
+    # df.index[0 : indexStartLER] # Select the data from zero to Start of Linear Elastic Region 
+    # Extensiometer Removal Data
+
+    # Fracture Point Data To end of Data set
+    
+  
 DataDict = {}
 # De comment which material to process
-#Mat_For_Analysis = '260Brass' 
+Mat_For_Analysis = '260Brass' 
 #Mat_For_Analysis = '1018Steel'
 #Mat_For_Analysis = '4130Steel'
-Mat_For_Analysis = '6061Aluminium'
+#Mat_For_Analysis = '6061Aluminium'
 
 ExcelFileLoc = Mat_For_Analysis + 'Data' + '\\' + Mat_For_Analysis + 'Measurements' + '.xlsx'
 #ExcelFileLoc = '260BrassData\\260BrassMeasurements.xlsx'
@@ -106,7 +109,12 @@ for file in filenames: # for each file in the folder
     length = GeometryData.iloc[0]['Length_mm']
     width = GeometryData.iloc[0]['Width_mm']
     thickness = GeometryData.iloc[0]['Thickness_mm']
-    
+
+    # exponential smoothing
+    spanval = 10
+    df[Force_N] = df[Force_N].ewm(span=spanval, adjust=False).mean()
+    df[Globe_Disp_1_mm] = df[Globe_Disp_1_mm].ewm(span=spanval, adjust=False).mean()
+
     # Calculation of stress and strain for the current path in question
     CSArea = width * thickness
     #Stress
@@ -115,49 +123,14 @@ for file in filenames: # for each file in the folder
     #Strain
     df['Strain_mm/mm'] = df[Globe_Disp_1_mm].abs() / length
     Strain_mmPermm = 'Strain_mm/mm'
-    # exponential smoothing
-    spanval = 6
-    df[Force_N] = df[Force_N].ewm(span=spanval, adjust=False).mean()
-    df[Globe_Disp_1_mm] = df[Globe_Disp_1_mm].ewm(span=spanval, adjust=False).mean()
     
-    if df[Force_N].iloc[0] < 1:
-        ELeRegion = Remove_extrainious_data()
-        
-        StrainIndex_FP = 10
-        StrainIndex_LP = ELeRegion[0] - 10
+    BeginData_Index, DataBeginCuttoff = IdentifyCriticalPoints()
+    RemoveNullData()
 
-        GlobDisp_Modulus = ((df[Stress_Mpa].loc[StrainIndex_LP] - df[Stress_Mpa].loc[StrainIndex_FP]) /
-                            (df[Strain_mmPermm].loc[StrainIndex_LP] - df[Strain_mmPermm].loc[StrainIndex_FP]))
-        Propertydict['GlobDisp_Modulus']= [GlobDisp_Modulus,
-                                            [df[Strain_mmPermm].loc[StrainIndex_LP], df[Strain_mmPermm].loc[StrainIndex_FP]], 
-                                            [df[Stress_Mpa].loc[StrainIndex_LP], df[Stress_Mpa].loc[StrainIndex_FP]]] 
-       
-        df['Ext_Strain_mm/mm'] = df[Ext_Disp_mm].abs() / length
-        df.loc[StrainIndex_LP: , 'Ext_Strain_mm/mm'] = np.nan
-        df.loc[ :StrainIndex_FP, 'Ext_Strain_mm/mm'] = np.nan
-    else:
-        Propertydict['GlobDisp_Modulus']= [np.nan,
-                                            [np.nan, np.nan], 
-                                            [np.nan, np.nan]] 
-        # plt.plot(df['Ext_Strain_mm/mm'], df[Stress_Mpa])
-        # plt.show()
-        
-    
-    #Calculate elastic modulus for each material using extenometer data
-  
-    #Determine yeild strength and ultimate tensile strength
-    Propertydict['YeildStrength'] = [df[Stress_Mpa].loc[ELeRegion[0] - 1], [df[Strain_mmPermm].loc[ELeRegion[0] - 1]]] 
-    Propertydict['UltTensileStrength'] = [df[Stress_Mpa].max(), df[Strain_mmPermm].loc[df[Stress_Mpa].idxmax()]]
+    DataDict[f_name] = df # Storing the Data For Plotting
 
-    #Vickers hardness values? 
-    print(HeatTreatment, 'Yeild Strength is ', Propertydict['YeildStrength'][0])
-    print(HeatTreatment, 'Ult Tensile Strength is ', Propertydict['UltTensileStrength'][0])
-    print(HeatTreatment, 'Global modulus is ', Propertydict['GlobDisp_Modulus'][0])
 
-    MatPropertiesDict[f_name] = Propertydict
-    fileName = 'ExportCsv' + '\\' + f_name +'.csv'
-    df.to_csv(fileName)
-    DataDict[f_name] = df
+
 
 #Charts 
 fig, axis = plt.subplots(nrows = 3, ncols = 2, figsize = (8.5 , 11))
@@ -174,7 +147,7 @@ for key in DataDict:
     i = i +1
     if i == 3:
         i = 0
-    Propertydict = MatPropertiesDict[key]
+    
     dfplot = DataDict[key]
     material, HeatTreatment, TestNum = key.split('_')
     
@@ -211,14 +184,14 @@ for key in DataDict:
     axis[fignum[0], fignum[1]].plot(dfplot[Strain_mmPermm], dfplot[Stress_Mpa],  
     color = mycolor, alpha = myalpha, label = TestNum)
     
-    axis[fignum[0], fignum[1]].plot(Propertydict['YeildStrength'][1], Propertydict['YeildStrength'][0],  
-    color = mycolor, alpha = myalpha, marker = 'x' )
+    # axis[fignum[0], fignum[1]].plot(Propertydict['YeildStrength'][1], Propertydict['YeildStrength'][0],  
+    # color = mycolor, alpha = myalpha, marker = 'x' )
 
-    axis[fignum[0], fignum[1]].plot(Propertydict['UltTensileStrength'][1], Propertydict['UltTensileStrength'][0],  
-    color = mycolor, alpha = myalpha, marker = 'o' )
+    # axis[fignum[0], fignum[1]].plot(Propertydict['UltTensileStrength'][1], Propertydict['UltTensileStrength'][0],  
+    # color = mycolor, alpha = myalpha, marker = 'o' )
 
-    axis[fignum[0], fignum[1]].plot(Propertydict['GlobDisp_Modulus'][1], Propertydict['GlobDisp_Modulus'][2],  
-    color = 'purple', alpha = myalpha)
+    # axis[fignum[0], fignum[1]].plot(Propertydict['GlobDisp_Modulus'][1], Propertydict['GlobDisp_Modulus'][2],  
+    # color = 'purple', alpha = myalpha)
     
     axis[fignum[0], fignum[1]].set_xlabel('Strain '+ r'($\frac{mm}{mm}$)' )
     axis[fignum[0], fignum[1]].set_ylabel('Stress (Mpa)')
