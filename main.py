@@ -10,6 +10,12 @@ from scipy.signal import butter, medfilt, filtfilt
 
 # ---------------------Setup-----------------------
 # A visualization of the derivitive is avalible in the the DerivitiveVisualization.py Module 
+# Files must have a specific nomeculture, a tree example is shown below, names are in quotes
+#   folder: '#MatData'
+#       lvm datafile: '#Mat_HTx_Tx.lvm'
+#       excel data file: '#MatMeasurements.xlsx' 
+# See Acompannying Datafiles and folders for exact examples
+
 
     # De comment which material to process
 Mat_For_Analysis = '260Brass'
